@@ -1,30 +1,37 @@
 acid.init = function(){
 	acid.debug = true;
-	box = acid.rect("line",800,20,"red");
-	box.ys = 560;
-	box3 = acid.rect("line",20,800,"red");
-	box3.xs = 560;
-	acid.addChild(box3);
+	ground = new Image();
+	ground.src = "ground.png";
+	ground.ys = 400;
+	acid.addChild(ground);//, grav, fric, isSolid, bounce, isStatic
+	acid.addPhysics(ground, false, 0, false, 0, true);
+	box = acid.rect("line", 20, 20, "red");
 	acid.addChild(box);
-	acid.addPhysics(box,false,true,true,true);
-	acid.addPhysics(box3,false,true,true,true);
-	box2 = acid.rect("fill",40,40,"blue");
-	box2.xs = 100;
-	acid.addChild(box2);
-	acid.addPhysics(box2, true);
+	acid.addPhysics(box, true, 20);
 }
 
 acid.update = function(){
-	box.xs += 0.1
 }
 
 acid.keypress = function(evt){
 	switch(evt.keyCode){
+		case 97:
+			box2.velX -= 20;
+		break;
 		case 37:
-			box2.velX -= 100;
+			box2.velX -= 20;
+		break;
+		case 100:
+			box2.velX += 20;
 		break;
 		case 39:
-			box2.velX += 100;
+			box2.velX += 20;
+		break;
+		case 119:
+			box2.velY -= 5;
+		break;
+		case 38:
+			box2.velY -= 5;
 		break;
 		default:
 			//
