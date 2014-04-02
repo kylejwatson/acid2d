@@ -30,7 +30,10 @@ window.onload = function(){
 	acid.height = mainCanvas.height;
 	frame = mainCanvas.getContext("2d");
 	acid.debug = false;
-	document.body.onkeypress = acid.keypress;
+	acid.keyboard;
+	acid.keyboard;
+	document.body.onkeydown = keydown;
+	document.body.onkeyup = keyup;
 	acid.init();
 	if(!acid.debug){
 		document.body.removeChild(outputBox);
@@ -40,6 +43,15 @@ window.onload = function(){
 		textBoxes = undefined;
 	}
 	window.setInterval(updateThings,20);
+}
+
+function keydown(evt){
+	acid.keydown(evt.keyCode);
+	acid.output(acid.length);
+}
+
+function keyup(evt){
+	acid.keyup(evt.keyCode);
 }
 
 acid.rect = function(ftype, wid, hig, col){
@@ -75,9 +87,9 @@ function updateThings(){
 			}
 			for(var i2=0;i2<physicsList.length;i2++){
 				if(i2 != i){
-					if(acid.checkcolX(physicsList[i], physicsList[i2], true)){
+					if(acid.checkcol(physicsList[i], physicsList[i2], true, true)){
 						if(physicsList[i].velX == Math.abs(physicsList[i].velX)){
-							physicsList[i].velX -= physicsList[i].friction;
+							physicsList[i].velX -= physicsList[i].friction + physicsList[i2].friction;
 							if(physicsList[i].velX < 0.1 && physicsList[i].velX != 0){
 								physicsList[i].velX = 0;
 							}
@@ -89,9 +101,9 @@ function updateThings(){
 							}						
 						}
 					}
-					if(acid.checkcolY(physicsList[i], physicsList[i2], true)){
+					if(acid.checkcol(physicsList[i], physicsList[i2], true, false)){
 						if(physicsList[i].velY == Math.abs(physicsList[i].velY)){
-							physicsList[i].velY -= physicsList[i].friction;
+							physicsList[i].velY -= physicsList[i].friction + physicsList[i2].friction;
 							if(physicsList[i].velY < 0.1 && physicsList[i].velY != 0){
 								physicsList[i].velY = 0;
 							}
@@ -103,12 +115,12 @@ function updateThings(){
 							}
 						}
 					}
-					if(physicsList[i2].isSolid && physicsList[i].isSolid){
-						if(acid.checkcolX(physicsList[i], physicsList[i2], false)){
-							physicsList[i].velX = -physicsList[i].velX/(100/(physicsList[i].bounce*physicsList[i2].bounce));
+					if(physicsList[i2].solid && physicsList[i].solid){
+						if(acid.checkcol(physicsList[i], physicsList[i2], false, true)){
+							physicsList[i].velX = -physicsList[i].velX/(100/(physicsList[i].bounce+physicsList[i2].bounce));
 						}
-						if(acid.checkcolY(physicsList[i], physicsList[i2], false)){
-							physicsList[i].velY = -physicsList[i].velY/(100/(physicsList[i].bounce*physicsList[i2].bounce));
+						if(acid.checkcol(physicsList[i], physicsList[i2], false, false)){
+							physicsList[i].velY = -physicsList[i].velY/(100/(physicsList[i].bounce+physicsList[i2].bounce));
 						}
 					}
 				}
@@ -124,63 +136,59 @@ function updateThings(){
 	}
 }
 
-acid.checkcolX = function(obj1, obj2, fric){
+acid.checkcol = function(obj1, obj2, fric, p){
 	if(physicsList.indexOf(obj1) > -1 && physicsList.indexOf(obj2) > -1 ){
-		if(!fric){
-			if(obj1.xs + obj1.boundBox[0] + obj1.velX < obj2.xs + obj2.boundBox[2] + obj2.velX &&
-			obj2.xs + obj2.boundBox[0] + obj2.velX < obj1.xs + obj1.boundBox[2] + obj1.velX && 
-			obj1.ys + obj1.boundBox[1] < obj2.ys + obj2.boundBox[3] &&
-			obj2.ys + obj2.boundBox[1] < obj1.ys + obj1.boundBox[3]){
-				return true;
-			}
-			else if(obj1.xs + obj1.boundBox[2] < obj2.xs + obj2.boundBox[0] && obj1.xs + obj1.boundBox[0] + obj1.velX > obj2.xs + obj2.boundBox[2] ||
-				obj1.xs + obj1.boundBox[0] > obj2.xs + obj2.boundBox[2] && obj1.xs + obj1.boundBox[2] + obj1.velX < obj2.xs + obj2.boundBox[0]){
-				return true;			
+		left1 = obj1.xs + obj1.boundBox[0];
+		left2 = obj2.xs + obj2.boundBox[0];
+		top1 = obj1.ys + obj1.boundBox[1];
+		top2 = obj2.ys + obj2.boundBox[1];
+		right1 = obj1.xs + obj1.boundBox[2];
+		right2 = obj2.xs + obj2.boundBox[2];
+		bottom1 = obj1.ys + obj1.boundBox[3];
+		bottom2 = obj2.ys + obj2.boundBox[3];
+		
+		if(p){
+			if(!fric){
+				if(!(right1 + obj1.velX	< left2 || left1 + obj1.velX > right2 || bottom1 < top2 || top1 > bottom2)){
+					return true;
+				}
+				else if(right1 < left2 && left1 + obj1.velX > right2 || left1 > right2 && right1 + obj1.velX < left2){
+					return true;			
+				}
+				else{
+					return false;
+				}
 			}
 			else{
-				return false;
+				if(!(right1 + obj1.velX	< left2 || left1 + obj1.velX > right2 || bottom1 + 1 < top2 || top1 - 1 > bottom2)){
+					return true;
+				}
+				else{
+					return false;
+				}
 			}
 		}
 		else{
-			if(obj1.xs + obj1.boundBox[0] + obj1.velX < obj2.xs + obj2.boundBox[2] + obj2.velX &&
-			obj2.xs + obj2.boundBox[0] + obj2.velX < obj1.xs + obj1.boundBox[2] + obj1.velX && 
-			obj1.ys + obj1.boundBox[1] < obj2.ys + obj2.boundBox[3] && 
-			obj2.ys + obj2.boundBox[1] < obj1.ys + 1 + obj1.boundBox[3]){
-				return true;
+			if(!fric){
+				if(!(right1 < left2 || left1 > right2 || bottom1 + obj1.velY < top2 || top1 + obj1.velY > bottom2)){
+					return true;
+				}
+				else if(bottom1 < top2 && top1 + obj1.velY > bottom2 || top1 > bottom2 && bottom1 + obj1.velY < top2){
+					acid.output(true);
+					return true;			
+				}
+				else{
+					return false;
+				}
 			}
 			else{
-				return false;
-			}
-		}
-	}
-}
-acid.checkcolY = function(obj1, obj2, fric){
-	if(physicsList.indexOf(obj1) > -1 && physicsList.indexOf(obj2) > -1 ){
-		if(!fric){
-			if(obj1.xs + obj1.boundBox[0] < obj2.xs + obj2.boundBox[2] &&
-			obj2.xs + obj2.boundBox[0] < obj1.xs + obj1.boundBox[2] && 
-			obj1.ys + obj1.boundBox[1] + obj1.velY < obj2.ys + obj2.boundBox[3] + obj2.velY && 
-			obj2.ys + obj2.boundBox[1] + obj2.velY < obj1.ys + obj1.boundBox[3] + obj1.velY){
-				return true;
-			}
-			else if(obj1.ys + obj1.boundBox[3] < obj2.ys + obj2.boundBox[1] && obj1.ys + obj1.boundBox[1] + obj1.velY > obj2.ys + obj2.boundBox[3] ||
-				obj1.ys + obj1.boundBox[1] > obj2.ys + obj2.boundBox[3] && obj1.ys + obj1.boundBox[3] + obj1.velY < obj2.ys + obj2.boundBox[1]){
-				return true;
-			}
-			else{
-				return false;
-			}
-		}
-		else{
-			if(obj1.xs - 1 + obj1.boundBox[0] + obj1.velX < obj2.xs + obj2.boundBox[2] + obj2.velX &&
-			obj2.xs + obj2.boundBox[0] + obj2.velX < obj1.xs + obj1.boundBox[2] + obj1.velX && 
-			obj1.ys + obj1.boundBox[1] < obj2.ys + obj2.boundBox[3] && 
-			obj2.ys + obj2.boundBox[1] < obj1.ys + 1 + obj1.boundBox[3]){
-				return true;
-			}
-			else{
-				return false;
-			}
+				if(!(right1 + 1 < left2 || left1 - 1 > right2 || bottom1 + obj1.velY < top2 || top1 + obj1.velY > bottom2)){
+					return true;
+				}
+				else{
+					return false;
+				}
+			}		
 		}
 	}
 }
@@ -220,7 +228,7 @@ acid.removePhysics = function(theChild){
 acid.addPhysics = function(thePhysics, grav, fric, isSolid, bounce, isStatic){
 	thePhysics.gravity = true;
 	thePhysics.friction = 0.1;
-	thePhysics.isSolid = true;
+	thePhysics.solid = true;
 	thePhysics.freeze = false;
 	thePhysics.bounce = 5;
 	physicsList.push(thePhysics);
@@ -231,6 +239,10 @@ acid.addPhysics = function(thePhysics, grav, fric, isSolid, bounce, isStatic){
 	if(isStatic != undefined){thePhysics.freeze = isStatic;}
 	thePhysics.velX = 0;
 	thePhysics.velY = 0;
+	if(!thePhysics.nwidth){
+		thePhysics.nwidth = thePhysics.naturalWidth;
+		thePhysics.nheight = thePhysics.naturalHeight;
+	}
 	thePhysics.boundBox = [0,0,thePhysics.nwidth,thePhysics.nheight];
 }
 
