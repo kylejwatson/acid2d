@@ -169,7 +169,9 @@ function updateThings(){
 				displayList[i].xs = acid.width - displayList[i].nwidth - acid.camera.margin;				
 			}
 			else if(displayList[i].xs - acid.camera.margin < 0){
-				acid.camera.xs += displayList[i].xs;
+				acid.output(displayList[i].xs, true);
+				acid.camera.xs -= displayList[i].xs - acid.camera.margin;
+				acid.output(acid.camera.xs);
 				displayList[i].xs = acid.camera.margin;				
 			}
 			if(displayList[i].ys + displayList[i].nheight + acid.camera.margin > acid.height){
@@ -177,11 +179,13 @@ function updateThings(){
 				displayList[i].ys = acid.height - displayList[i].nheight - acid.camera.margin;				
 			}
 			else if(displayList[i].ys - acid.camera.margin < 0){
-				acid.camera.ys += displayList[i].ys;
+				acid.camera.ys -= displayList[i].ys - acid.camera.margin;
 				displayList[i].ys = acid.camera.margin;	
 			}
 			frame.drawImage(displayList[i], displayList[i].xs, displayList[i].ys);
-			frame.strokeRect(acid.camera.margin, acid.camera.margin, acid.width - 2*acid.camera.margin, acid.height - 2*acid.camera.margin);
+			if(acid.debug){
+			//	frame.strokeRect(acid.camera.margin, acid.camera.margin, acid.width - 2*acid.camera.margin, acid.height - 2*acid.camera.margin);
+			}
 		}
 		else{
 			frame.drawImage(displayList[i], displayList[i].xs + acid.camera.xs, displayList[i].ys + acid.camera.ys);
@@ -328,7 +332,10 @@ acid.addPhysics = function(thePhysics, grav, fric, isSolid, bounce, isStatic, pl
 	thePhysics.boundBox = [0,0,thePhysics.nwidth,thePhysics.nheight];
 }
 
-acid.output = function(theText){
+acid.output = function(theText,clear){
+	if(clear){
+		outputBox.value = "";
+	}
 	if(acid.debug){
 		outputBox.value += "Output> '" + theText + "' \n";
 	}
