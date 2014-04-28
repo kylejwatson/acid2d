@@ -29,8 +29,9 @@ window.onload = function(){
 	acid.width = mainCanvas.width;
 	acid.height = mainCanvas.height;
 	frame = mainCanvas.getContext("2d");
+	frame.save();
 	acid.debug = false;
-	acid.keyboard = {right:false, left:false, up:false, down:false}
+	acid.keyboard = {right:false, left:false, up:false, down:false};
 	document.body.onkeydown = keydown;
 	document.body.onkeyup = keyup;
 	acid.camera = {xs:0, ys:0, id:-1, margin:10};
@@ -62,7 +63,9 @@ function keydown(evt){
 		default:
 			//
 	}
-	acid.keydown(evt.keyCode);
+	if(typeof acid.keydown == 'function') { 
+		acid.keydown(evt.keyCode); 
+	}
 }
 
 function keyup(evt){
@@ -82,7 +85,9 @@ function keyup(evt){
 		default:
 			//
 	}
-	acid.keyup(evt.keyCode);
+	if(typeof acid.keyup == 'function') { 
+		acid.keyup(evt.keyCode); 
+	}
 }
 
 acid.rect = function(ftype, wid, hig, col, platform){
@@ -102,17 +107,20 @@ acid.rect = function(ftype, wid, hig, col, platform){
 	imageNull.src = shapeCanvas.toDataURL("image/png");
 	imageNull.nwidth = wid;
 	imageNull.nheight = hig;
-	imageNull.xs = 0;
-	imageNull.ys = 0;
 	return imageNull;
 }
 
 function updateThings(){
-	frame.canvas.width = frame.canvas.width;
-	acid.update();
+	frame.canvas.width = frame.canvas.width;	
+	if(typeof acid.update == 'function') { 
+		acid.update(); 
+	}
 	
 	for(var i=0;i<physicsList.length;i++){
-		if(!physicsList[i].freeze){
+		if(!physicsList[i].freeze){			
+			if(physicsList[i].hasOwnProperty("onGround")){
+				physicsList[i].onGround = false;
+			}
 			if(physicsList[i].gravity){
 				physicsList[i].velY += 0.1;
 			}
@@ -135,6 +143,9 @@ function updateThings(){
 					if(acid.checkcol(physicsList[i], physicsList[i2], true, false)){
 						if(physicsList[i].velY == Math.abs(physicsList[i].velY)){
 							physicsList[i].velY -= physicsList[i].friction + physicsList[i2].friction;
+							if(physicsList[i].hasOwnProperty("onGround")){
+								physicsList[i].onGround = true;
+							}
 							if(physicsList[i].velY < 0.1 && physicsList[i].velY != 0){
 								physicsList[i].velY = 0;
 							}
@@ -163,15 +174,13 @@ function updateThings(){
 	}
 	
 	for(var i=0;i<displayList.length;i++){
-		if(acid.camera.id == i){
+		if(acid.camera.id == i && (!(displayList[i].nwidth > acid.width - 2 * acid.camera.margin) || !(displayList[i].nheight > acid.height - 2 * acid.camera.margin))){
 			if(displayList[i].xs + displayList[i].nwidth + acid.camera.margin > acid.width){
 				acid.camera.xs -= displayList[i].xs + displayList[i].nwidth + acid.camera.margin - acid.width;
 				displayList[i].xs = acid.width - displayList[i].nwidth - acid.camera.margin;				
 			}
 			else if(displayList[i].xs - acid.camera.margin < 0){
-				acid.output(displayList[i].xs, true);
 				acid.camera.xs -= displayList[i].xs - acid.camera.margin;
-				acid.output(acid.camera.xs);
 				displayList[i].xs = acid.camera.margin;				
 			}
 			if(displayList[i].ys + displayList[i].nheight + acid.camera.margin > acid.height){
@@ -182,20 +191,30 @@ function updateThings(){
 				acid.camera.ys -= displayList[i].ys - acid.camera.margin;
 				displayList[i].ys = acid.camera.margin;	
 			}
-			frame.drawImage(displayList[i], displayList[i].xs, displayList[i].ys);
+			frame.save();
+			frame.translate(displayList[i].xs + displayList[i].nwidth/2, displayList[i].ys + displayList[i].nheight/2);
+			frame.rotate(displayList[i].rotation*(Math.PI/180));
+			frame.scale(displayList[i].scaleX, displayList[i].scaleY);
+			frame.drawImage(displayList[i], -(displayList[i].nwidth/2), -(displayList[i].nheight/2));
+			frame.restore();
 			if(acid.debug){
-			//	frame.strokeRect(acid.camera.margin, acid.camera.margin, acid.width - 2*acid.camera.margin, acid.height - 2*acid.camera.margin);
+				frame.strokeRect(acid.camera.margin, acid.camera.margin, acid.width - 2*acid.camera.margin, acid.height - 2*acid.camera.margin);
 			}
 		}
 		else{
-			frame.drawImage(displayList[i], displayList[i].xs + acid.camera.xs, displayList[i].ys + acid.camera.ys);
+			frame.save();
+			frame.translate(displayList[i].xs + acid.camera.xs + displayList[i].nwidth/2, displayList[i].ys + acid.camera.ys + displayList[i].nheight/2);
+			frame.rotate(displayList[i].rotation*(Math.PI/180));
+			frame.scale(displayList[i].scaleX, displayList[i].scaleY);
+			frame.drawImage(displayList[i], -(displayList[i].nwidth/2), -(displayList[i].nheight/2));
+			frame.restore();
 		}
 	}
 }
 
 acid.checkcol = function(obj1, obj2, fric, p){
 	if(physicsList.indexOf(obj1) > -1 && physicsList.indexOf(obj2) > -1 ){
-		if(obj1.camera){
+		if(displayList.indexOf(obj1) == acid.camera.id){
 			left1 = obj1.xs + obj1.boundBox[0];
 			top1 = obj1.ys + obj1.boundBox[1];
 			right1 = obj1.xs + obj1.boundBox[2];
@@ -251,7 +270,6 @@ acid.checkcol = function(obj1, obj2, fric, p){
 						return true;
 					}
 					else if(bottom1 < top2 && top1 + obj1.velY > bottom2 || top1 > bottom2 && bottom1 + obj1.velY < top2){
-						acid.output(true);
 						return true;			
 					}
 					else{
@@ -273,22 +291,20 @@ acid.checkcol = function(obj1, obj2, fric, p){
 
 acid.addChild = function(theChild, camera){
 	if(theChild.hasAttribute("src")){
-		if(!theChild.xs){
-			theChild.xs = 0;
-		}
-		if(!theChild.ys){
-			theChild.ys = 0;
-		}
-		if(camera){
-			acid.camera.id = displayList.length + 2;
-			theChild.camera = true;
-		}
+		if(!theChild.hasOwnProperty("xs")){theChild.xs = 0;}
+		if(!theChild.hasOwnProperty("ys")){theChild.ys = 0;}
+		if(!theChild.hasOwnProperty("scaleX")){theChild.scaleX = 1;}
+		if(!theChild.hasOwnProperty("scaleY")){theChild.scaleY = 1;}
+		if(!theChild.hasOwnProperty("rotation")){theChild.rotation = 0;}
 		theChild.onload = function(){
 			if(!theChild.nwidth){
 				theChild.nwidth = theChild.naturalWidth;
 				theChild.nheight = theChild.naturalHeight;
 			}
 			displayList.push(theChild);
+			if(typeof camera == "boolean" && camera && (!(theChild.nwidth > acid.width - 2 * acid.camera.margin) || !(theChild.nheight > acid.height - 2 * acid.camera.margin))){
+				acid.camera.id = displayList.indexOf(theChild);
+			}
 		};
 	}
 /*	else if(theChild.canvas){
@@ -303,8 +319,10 @@ acid.addChild = function(theChild, camera){
 }
 acid.removeChild = function(theChild){
 	if(displayList.indexOf(theChild) > -1){
+		if(displayList.indexOf(theChild) == acid.camera.id){
+			acid.camera.id = -1;
+		}
 		displayList.splice(displayList.indexOf(theChild),1);
-		acid.removePhysics(theChild);
 	}
 }
 acid.removePhysics = function(theChild){
@@ -314,22 +332,24 @@ acid.removePhysics = function(theChild){
 }
 
 acid.addPhysics = function(thePhysics, grav, fric, isSolid, bounce, isStatic, plat){
-	thePhysics.gravity = true;
-	thePhysics.friction = 0.08;
-	thePhysics.solid = true;
-	thePhysics.freeze = false;
-	thePhysics.bounce = 5;
-	thePhysics.platform = false;
-	physicsList.push(thePhysics);
-	if(grav != undefined){thePhysics.gravity = grav;}
-	if(fric != undefined){thePhysics.friction = fric;}
-	if(isSolid != undefined){thePhysics.solid = isSolid;}
-	if(bounce != undefined){thePhysics.bounce = bounce;}
-	if(isStatic != undefined){thePhysics.freeze = isStatic;}
-	if(isStatic != undefined){thePhysics.platform = plat;}
-	thePhysics.velX = 0;
-	thePhysics.velY = 0;
-	thePhysics.boundBox = [0,0,thePhysics.nwidth,thePhysics.nheight];
+	if(thePhysics.hasAttribute("src")){
+		thePhysics.gravity = true;
+		thePhysics.friction = 0.08;
+		thePhysics.solid = true;
+		thePhysics.bounce = 5;
+		thePhysics.freeze = false;
+		thePhysics.platform = false;
+		physicsList.push(thePhysics);
+		if(typeof grav == "boolean"){thePhysics.gravity = grav;}
+		if(typeof fric == "number"){thePhysics.friction = fric;}
+		if(typeof isSolid == "boolean"){thePhysics.solid = isSolid;}
+		if(typeof bounce == "number"){thePhysics.bounce = bounce;}
+		if(typeof isStatic == "boolean"){thePhysics.freeze = isStatic;}
+		if(typeof plat == "boolean"){thePhysics.platform = plat;}
+		thePhysics.velX = 0;
+		thePhysics.velY = 0;
+		thePhysics.boundBox = [0,0,thePhysics.nwidth,thePhysics.nheight];
+	}
 }
 
 acid.output = function(theText,clear){
