@@ -1,20 +1,14 @@
 acid.init = function(){
 	acid.debug = true;
-	ground = acid.rect("line",442,33,"red");
+	ground = acid.rect("line",400,30,"red");
 	ground.ys = 400;
 	acid.addChild(ground);
-				  //thePhysics, grav, fric, isSolid, bounce, isStatic, plat
-	acid.addPhysics(ground, false, 0.08, true, 5, true, true);
-	wall = acid.rect("fill", 10, 500, "blue");
-	wall.xs = 400;
-	acid.addChild(wall);
-	acid.addPhysics(wall, false, 0.00, true, 5, true);
-	acid.output(wall.friction);
-	nwall = acid.rect("fill", 10, 500, "blue");
-	acid.addChild(nwall);
-	acid.addPhysics(nwall, false, 0.08, false, 5, true);
+	//thePhysics, grav, fric, isSolid, bounce, isStatic, plat
+	acid.addPhysics(ground, false, 0.08, true, 5, true, false);
 	box = acid.rect("line", 20, 20, "red");
 	box.rotation = 45;
+	box.xs =160;
+	box.ys =-50;
 	acid.addChild(box, true);
 	acid.addPhysics(box, true);
 	box.onGround = false;
@@ -32,7 +26,7 @@ acid.update = function(){
 }
 
 acid.keydown = function(k){
-	acid.output(k);
+//	acid.output(k);
 	if(k == 38 && box.onGround){
 		box.velY -= 5;
 	}
@@ -44,5 +38,8 @@ acid.keydown = function(k){
 	}
 	if(k==68){
 		acid.camera.id = 2;
+	}
+	if(k==70){
+		acid.camera.id = 3;
 	}
 }
